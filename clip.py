@@ -4,24 +4,22 @@ import ctypes
 from ctypes import wintypes
 import win32con
 
-def hotkey_handler(root):
-    print("hotkey pressed")
-    try:
-        msg = wintypes.MSG()
-        while ctypes.windll.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
-            if msg.message == win32con.WM_HOTKEY:
-                root.deiconify()
+# def hotkey_handler(root):
+#     print("hotkey pressed")
+#     try:
+#         msg = wintypes.MSG()
+#         while ctypes.windll.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
+#             if msg.message == win32con.WM_HOTKEY:
+#                 root.deiconify()
 
-            ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
-            ctypes.windll.user32.DispatchMessageA(ctypes.byref(msg))
+#             ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
+#             ctypes.windll.user32.DispatchMessageA(ctypes.byref(msg))
             
-    finally:
-        ctypes.windll.user32.UnregisterHotKey(None, 1)
+#     finally:
+#         ctypes.windll.user32.UnregisterHotKey(None, 1)
 
-
-
-    root.deiconify()
-    root.after(0, hotkey_handler)
+#     root.deiconify()
+#     root.after(0, hotkey_handler)
 
 def place_widgets(nums, clips):
     '''Arrange all widgets in the window.'''
@@ -71,13 +69,15 @@ def run():
 
     # init clipboard system
     clip_buffer = root.clipboard_get()
+    if clip_buffer == None:
+        clip_buffer = ""
     # clip_buffer = root.selection_get(selection="CLIPBOARD") # why use this??
     update_label(0, clip_buffer, clips, clips_vars)
 
-    ctypes.windll.user32.RegisterHotKey(None, 1, win32con.MOD_WIN,
-        win32con.VK_F3)
+    # ctypes.windll.user32.RegisterHotKey(None, 1, win32con.MOD_WIN,
+    #     win32con.VK_F3)
 
-    root.after(0, hotkey_handler, root)
+    # root.after(1, hotkey_handler, root)
     root.mainloop()
 
 if __name__ == "__main__":
