@@ -4,6 +4,29 @@ import ctypes
 from ctypes import wintypes
 import win32con
 
+class Window(Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Clippy")
+        self.iconbitmap("icon2.ico")
+        self.geometry("250x210-0+0") # place window in NE (0 pix left, 0 pix down)
+        self.resizable(FALSE,FALSE)
+
+    def place_widgets(self, nums, clips):
+        '''Arrange all widgets in the window.'''
+        for i, n, c in zip(range(10), nums, clips):
+            n.grid(column=0, row=i, padx=5)
+            c.grid(column=1, row=i)
+
+    def update_label(self):
+        pass
+
+
+class Clipboard(object):
+    def __init__(self):
+        pass
+
+
 # def hotkey_handler(root):
 #     print("hotkey pressed")
 #     try:
@@ -43,8 +66,14 @@ def update_label(index, text, clips, clips_vars):
 
 def run():
     '''Main app code.'''
-    root = make_window()
+    root = Window()
 
+    # -------------------------------------------------------------------------
+    # TODO: everything below here needs to move to Window or Clipboard class
+    # |
+    # |
+    # |
+    
     # configure widgets
     clips = ["" for i in range(10)]
     clips_vars = [StringVar(i) for i in clips]
@@ -52,7 +81,7 @@ def run():
         anchor=W) for i in range(len(clips))]
     labels_nums = [Label(root, text=str(i+1)[-1]+".") for i in range(10)]
     
-    place_widgets(labels_nums, labels_clips)
+    Window.place_widgets(Window, labels_nums, labels_clips)
 
     # event handler definitions
     def paste(event):
@@ -78,6 +107,13 @@ def run():
     #     win32con.VK_F3)
 
     # root.after(1, hotkey_handler, root)
+
+    # |
+    # |
+    # |
+    # Window/Clipboard class stuff ends here
+    # -------------------------------------------------------------------------
+
     root.mainloop()
 
 if __name__ == "__main__":
