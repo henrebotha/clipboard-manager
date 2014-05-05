@@ -9,22 +9,30 @@ class Window(Tk):
         super().__init__()
         self.title("Clippy")
         self.iconbitmap("icon2.ico")
-        self.geometry("250x210-0+0") # place window in NE (0 pix left, 0 pix down)
+        self.geometry("250x210-0+0") # place window in NE (0 left, 0 down)
         self.resizable(FALSE,FALSE)
+        self.my_clipboard = Clipboard()
+        self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
+        self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
+            width=30, anchor=W) for i in range(len(self.my_clipboard.clips))]
+        self.labels_nums = [Label(self,
+            text=str(i+1)[-1]+".") for i in range(10)]
 
-    def place_widgets(self, nums, clips):
+    def place_widgets(self):
         '''Arrange all widgets in the window.'''
-        for i, n, c in zip(range(10), nums, clips):
+        for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
             n.grid(column=0, row=i, padx=5)
             c.grid(column=1, row=i)
 
-    def update_label(self):
-        pass
+    def update_label(self, index, text):
+        '''Change the clip at index to text and update its corresponding label.'''
+        self.my_clipboard.clips[index] = text
+        self.clips_vars[index].set(text)
 
 
 class Clipboard(object):
     def __init__(self):
-        pass
+        self.clips = ["" for i in range(10)]
 
 
 # def hotkey_handler(root):
@@ -44,25 +52,25 @@ class Clipboard(object):
 #     root.deiconify()
 #     root.after(0, hotkey_handler)
 
-def place_widgets(nums, clips):
-    '''Arrange all widgets in the window.'''
-    for i, n, c in zip(range(10), nums, clips):
-        n.grid(column=0, row=i, padx=5)
-        c.grid(column=1, row=i)
+# def place_widgets(nums, clips):
+#     '''Arrange all widgets in the window.'''
+#     for i, n, c in zip(range(10), nums, clips):
+#         n.grid(column=0, row=i, padx=5)
+#         c.grid(column=1, row=i)
 
-def make_window():
-    '''Create the window.'''
-    r = Tk()
-    r.title("Clippy")
-    r.iconbitmap("icon2.ico")
-    r.geometry("250x210-0+0") # place window in NE (0 pix left, 0 pix down)
-    r.resizable(FALSE,FALSE)
-    return r
+# def make_window():
+#     '''Create the window.'''
+#     r = Tk()
+#     r.title("Clippy")
+#     r.iconbitmap("icon2.ico")
+#     r.geometry("250x210-0+0") # place window in NE (0 pix left, 0 pix down)
+#     r.resizable(FALSE,FALSE)
+#     return r
 
-def update_label(index, text, clips, clips_vars):
-    '''Change the clip at index to text and update its corresponding label.'''
-    clips[index] = text
-    clips_vars[index].set(text)
+# def update_label(index, text, clips, clips_vars):
+#     '''Change the clip at index to text and update its corresponding label.'''
+#     clips[index] = text
+#     clips_vars[index].set(text)
 
 def run():
     '''Main app code.'''
@@ -75,20 +83,22 @@ def run():
     # |
     
     # configure widgets
-    clips = ["" for i in range(10)]
-    clips_vars = [StringVar(i) for i in clips]
-    labels_clips = [Label(root, textvariable=clips_vars[i], width=30,
-        anchor=W) for i in range(len(clips))]
-    labels_nums = [Label(root, text=str(i+1)[-1]+".") for i in range(10)]
+    # clipboard
+    # clips = ["" for i in range(10)]
+    # gui
+    # clips_vars = [StringVar(i) for i in clips]
+    # labels_clips = [Label(root, textvariable=clips_vars[i], width=30,
+    #     anchor=W) for i in range(len(clips))]
+    # labels_nums = [Label(root, text=str(i+1)[-1]+".") for i in range(10)]
     
-    Window.place_widgets(Window, labels_nums, labels_clips)
+    Window.place_widgets(root) # Why does it want explicit self reference?!
 
     # event handler definitions
     def paste(event):
         i = int(event.keysym)
         if i == 0:
             i = 10
-        print(clips[i-1])
+        print(root.my_clipboard.clips[i-1])
         event.widget.iconify()
 
     # event handler bindings
@@ -101,7 +111,7 @@ def run():
     if clip_buffer == None:
         clip_buffer = ""
     # clip_buffer = root.selection_get(selection="CLIPBOARD") # why use this??
-    update_label(0, clip_buffer, clips, clips_vars)
+    root.update_label(0, clip_buffer)
 
     # ctypes.windll.user32.RegisterHotKey(None, 1, win32con.MOD_WIN,
     #     win32con.VK_F3)
