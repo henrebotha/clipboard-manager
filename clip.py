@@ -7,16 +7,22 @@ import win32con
 class Window(Tk):
     def __init__(self):
         super().__init__()
+        # GUI init
         self.title("Clippy")
         self.iconbitmap("icon2.ico")
         self.geometry("250x210-0+0") # place window in NE (0 left, 0 down)
         self.resizable(FALSE,FALSE)
+        # general init
         self.my_clipboard = Clipboard()
         self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, anchor=W) for i in range(len(self.my_clipboard.clips))]
         self.labels_nums = [Label(self,
             text=str(i+1)[-1]+".") for i in range(10)]
+        # event bindings
+        for i in range(10):
+            s = "<Key-{}>".format(str(i+1)[-1])
+            self.bind_all(s, self.my_clipboard.paste)
 
     def place_widgets(self):
         '''Arrange all widgets in the window.'''
@@ -33,6 +39,13 @@ class Window(Tk):
 class Clipboard(object):
     def __init__(self):
         self.clips = ["" for i in range(10)]
+
+    def paste(self, event):
+        i = int(event.keysym)
+        if i == 0:
+            i = 10
+        print(self.clips[i-1])
+        event.widget.iconify()
 
 
 # def hotkey_handler(root):
@@ -93,18 +106,18 @@ def run():
     
     Window.place_widgets(root) # Why does it want explicit self reference?!
 
-    # event handler definitions
-    def paste(event):
-        i = int(event.keysym)
-        if i == 0:
-            i = 10
-        print(root.my_clipboard.clips[i-1])
-        event.widget.iconify()
+    # # event handler definitions
+    # def paste(event):
+    #     i = int(event.keysym)
+    #     if i == 0:
+    #         i = 10
+    #     print(root.my_clipboard.clips[i-1])
+    #     event.widget.iconify()
 
-    # event handler bindings
-    for i in range(10):
-        s = "<Key-{}>".format(str(i+1)[-1])
-        root.bind_all(s, paste)
+    # # event handler bindings
+    # for i in range(10):
+    #     s = "<Key-{}>".format(str(i+1)[-1])
+    #     root.bind_all(s, paste)
 
     # init clipboard system
     clip_buffer = root.clipboard_get()
