@@ -13,7 +13,7 @@ class Window(Tk):
         self.geometry("250x210-0+0") # place window in NE (0 left, 0 down)
         self.resizable(FALSE,FALSE)
         # general init
-        self.my_clipboard = Clipboard()
+        self.my_clipboard = Clipboard(self)
         self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, anchor=W) for i in range(len(self.my_clipboard.clips))]
@@ -23,6 +23,10 @@ class Window(Tk):
         for i in range(10):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_clipboard.paste)
+
+        self.place_widgets()
+
+        self.my_clipboard.update_clipboard()
 
     def place_widgets(self):
         '''Arrange all widgets in the window.'''
@@ -37,8 +41,9 @@ class Window(Tk):
 
 
 class Clipboard(object):
-    def __init__(self):
+    def __init__(self, parent):
         self.clips = ["" for i in range(10)]
+        self.parent = parent
 
     def paste(self, event):
         i = int(event.keysym)
@@ -47,6 +52,21 @@ class Clipboard(object):
         print(self.clips[i-1])
         event.widget.iconify()
 
+    def update_clipboard(self):
+        self.clip_buffer = self.parent.clipboard_get()
+        if self.clip_buffer == None:
+            self.clip_buffer = ""
+        else:
+            self.clip_buffer == str(self.clip_buffer)
+        if self.clip_buffer in self.clips:
+            i = self.clips.index(self.clip_buffer)
+            self.clips.insert(0, self.clips.pop(i))
+        else:
+            self.clips.insert(0, self.clip_buffer)
+            self.clips.pop()
+        for index, clip in enumerate(self.clips):
+            self.parent.update_label(index, clip)
+        self.parent.after(1, self.update_clipboard)
 
 # def hotkey_handler(root):
 #     print("hotkey pressed")
@@ -65,77 +85,14 @@ class Clipboard(object):
 #     root.deiconify()
 #     root.after(0, hotkey_handler)
 
-# def place_widgets(nums, clips):
-#     '''Arrange all widgets in the window.'''
-#     for i, n, c in zip(range(10), nums, clips):
-#         n.grid(column=0, row=i, padx=5)
-#         c.grid(column=1, row=i)
-
-# def make_window():
-#     '''Create the window.'''
-#     r = Tk()
-#     r.title("Clippy")
-#     r.iconbitmap("icon2.ico")
-#     r.geometry("250x210-0+0") # place window in NE (0 pix left, 0 pix down)
-#     r.resizable(FALSE,FALSE)
-#     return r
-
-# def update_label(index, text, clips, clips_vars):
-#     '''Change the clip at index to text and update its corresponding label.'''
-#     clips[index] = text
-#     clips_vars[index].set(text)
-
 def run():
     '''Main app code.'''
     root = Window()
-
-    # -------------------------------------------------------------------------
-    # TODO: everything below here needs to move to Window or Clipboard class
-    # |
-    # |
-    # |
-    
-    # configure widgets
-    # clipboard
-    # clips = ["" for i in range(10)]
-    # gui
-    # clips_vars = [StringVar(i) for i in clips]
-    # labels_clips = [Label(root, textvariable=clips_vars[i], width=30,
-    #     anchor=W) for i in range(len(clips))]
-    # labels_nums = [Label(root, text=str(i+1)[-1]+".") for i in range(10)]
-    
-    Window.place_widgets(root) # Why does it want explicit self reference?!
-
-    # # event handler definitions
-    # def paste(event):
-    #     i = int(event.keysym)
-    #     if i == 0:
-    #         i = 10
-    #     print(root.my_clipboard.clips[i-1])
-    #     event.widget.iconify()
-
-    # # event handler bindings
-    # for i in range(10):
-    #     s = "<Key-{}>".format(str(i+1)[-1])
-    #     root.bind_all(s, paste)
-
-    # init clipboard system
-    clip_buffer = root.clipboard_get()
-    if clip_buffer == None:
-        clip_buffer = ""
-    # clip_buffer = root.selection_get(selection="CLIPBOARD") # why use this??
-    root.update_label(0, clip_buffer)
 
     # ctypes.windll.user32.RegisterHotKey(None, 1, win32con.MOD_WIN,
     #     win32con.VK_F3)
 
     # root.after(1, hotkey_handler, root)
-
-    # |
-    # |
-    # |
-    # Window/Clipboard class stuff ends here
-    # -------------------------------------------------------------------------
 
     root.mainloop()
 
