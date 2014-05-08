@@ -1,8 +1,19 @@
+# Issues:
+# - long clips cause grid elements to stretch - fix this
+# - global hotkey needs implementation
+# - pasting needs implementation (requires global hotkey first!)
+# - clipboard detection is broken! it only detects the last-copied item, and
+#   only when opening the window.
+
 from tkinter import *
 from time import sleep
 import ctypes
 from ctypes import wintypes
 import win32con
+import win32api
+
+user32 = ctypes.windll.user32
+byref = ctypes.byref
 
 class Window(Tk):
     def __init__(self):
@@ -50,6 +61,17 @@ class Clipboard(object):
         if i == 0:
             i = 10
         print(self.clips[i-1])
+
+        # Implementation:
+        # - on global hotkey press, find handle to current window before
+        #   deiconifying this window
+        # - on paste, send WM_PASTE message to said window
+        
+        # # http://bytes.com/topic/python/answers/646943-get-control-over-window
+        # hwnd = user32.FindWindowA(None, "Notepad")
+        # win32api.SendMessage(hwnd, win32con.WM_PASTE, 0, 0)
+        # # http://bytes.com/topic/python/answers/646943-get-control-over-window
+
         event.widget.iconify()
 
     def update_clipboard(self):
@@ -69,49 +91,54 @@ class Clipboard(object):
         self.parent.after(1, self.update_clipboard)
 
 # def hotkey_handler(root):
-#     print("hotkey pressed")
 #     try:
 #         msg = wintypes.MSG()
-#         while ctypes.windll.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
+#         while user32.GetMessageA(byref(msg), None, 0, 0) != 0:
 #             if msg.message == win32con.WM_HOTKEY:
-#                 root.deiconify()
+#                 # root.deiconify()
+#                 print("hotkey pressed")
 
-#             ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
-#             ctypes.windll.user32.DispatchMessageA(ctypes.byref(msg))
+#             user32.TranslateMessage(byref(msg))
+#             user32.DispatchMessageA(byref(msg))
             
 #     finally:
-#         ctypes.windll.user32.UnregisterHotKey(None, 1)
+#         user32.UnregisterHotKey(None, 1)
 
-#     root.deiconify()
-#     root.after(0, hotkey_handler)
+#     # root.deiconify()
+#     root.after(1, hotkey_handler, root)
+
+def hotkey_handler(root):
+    msg = wintypes.MSG()
+    if user32.GetMessageA(byref(msg), None, 0, 0) != 0:
+        if msg.message == win32con.WM_HOTKEY:
+            if msg.wParam == 1:
+                root.deiconify()
+    user32.TranslateMessage(byref(msg))
+    user32.DispatchMessageA(byref(msg))
+    # user32.UnregisterHotKey(None, 1)
+    root.after(1, hotkey_handler, root)
 
 def run():
     '''Main app code.'''
     root = Window()
 
-    # ctypes.windll.user32.RegisterHotKey(None, 1, win32con.MOD_WIN,
-    #     win32con.VK_F3)
+    if user32.RegisterHotKey(None, 1, win32con.MOD_WIN, ord("V")) != 0:
+        print("--Hotkey registered!")
+    else:
+        print("--Error registering hotkey.")
 
-    # root.after(1, hotkey_handler, root)
+    root.after(1, hotkey_handler, root)
 
     root.mainloop()
+
+    if user32.UnregisterHotKey(None, 1) != 0:
+        print("--Hotkey deregistered!")
+    else:
+        print("--Error deregistering hotkey.")
 
 if __name__ == "__main__":
     run()
 
-
-# TODO: put this inside mainloop using events or w/e
-# runtime = 50
-# while True:
-#     clip = root.selection_get(selection="CLIPBOARD")
-#     if clip != clip_buffer:
-#         clips.append(clip)
-#         clip_buffer = clip
-#     print(clips)
-#     sleep(0.25)
-#     runtime -= 1
-#     if runtime < 0:
-#         break
 
     # from Tkinter import *
     # from time import sleep
