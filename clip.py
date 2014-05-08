@@ -1,7 +1,8 @@
 # Issues:
-# - long clips cause grid elements to stretch - fix this
-# - global hotkey needs implementation
-# - pasting needs implementation (requires global hotkey first!)
+# - long clips will only show the last part of the clip. Correction will require
+#   creating a Clip class that can contain both the full text of a clip, and a
+#   display-friendly version
+# - pasting needs implementation
 # - clipboard detection is broken! it only detects the last-copied item, and
 #   only when opening the window.
 
@@ -23,27 +24,25 @@ class Window(Tk):
         self.iconbitmap("icon2.ico")
         self.geometry("250x210-0+0") # place window in NE (0 left, 0 down)
         self.resizable(FALSE,FALSE)
-        # general init
-        self.my_clipboard = Clipboard(self)
+
+        # widgets & general init
+        self.my_clipboard = Clipboard(self) # give clipboard reference to window
         self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
-            width=30, anchor=W) for i in range(len(self.my_clipboard.clips))]
+            width=30, height=1,
+            anchor=W) for i in range(len(self.my_clipboard.clips))]
         self.labels_nums = [Label(self,
             text=str(i+1)[-1]+".") for i in range(10)]
+        for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
+            n.grid(column=0, row=i, padx=5)
+            c.grid(column=1, row=i)
+
         # event bindings
         for i in range(10):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_clipboard.paste)
 
-        self.place_widgets()
-
         self.my_clipboard.update_clipboard()
-
-    def place_widgets(self):
-        '''Arrange all widgets in the window.'''
-        for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
-            n.grid(column=0, row=i, padx=5)
-            c.grid(column=1, row=i)
 
     def update_label(self, index, text):
         '''Change the clip at index to text and update its corresponding label.'''
@@ -90,22 +89,6 @@ class Clipboard(object):
             self.parent.update_label(index, clip)
         self.parent.after(1, self.update_clipboard)
 
-# def hotkey_handler(root):
-#     try:
-#         msg = wintypes.MSG()
-#         while user32.GetMessageA(byref(msg), None, 0, 0) != 0:
-#             if msg.message == win32con.WM_HOTKEY:
-#                 # root.deiconify()
-#                 print("hotkey pressed")
-
-#             user32.TranslateMessage(byref(msg))
-#             user32.DispatchMessageA(byref(msg))
-            
-#     finally:
-#         user32.UnregisterHotKey(None, 1)
-
-#     # root.deiconify()
-#     root.after(1, hotkey_handler, root)
 
 def hotkey_handler(root):
     msg = wintypes.MSG()
@@ -115,45 +98,25 @@ def hotkey_handler(root):
                 root.deiconify()
     user32.TranslateMessage(byref(msg))
     user32.DispatchMessageA(byref(msg))
-    # user32.UnregisterHotKey(None, 1)
     root.after(1, hotkey_handler, root)
 
 def run():
     '''Main app code.'''
-    root = Window()
+    try:
+        root = Window()
 
-    if user32.RegisterHotKey(None, 1, win32con.MOD_WIN, ord("V")) != 0:
-        print("--Hotkey registered!")
-    else:
-        print("--Error registering hotkey.")
+        if user32.RegisterHotKey(None, 1, win32con.MOD_WIN, ord("V")) != 0:
+            print("--Hotkey registered!")
+        else:
+            print("--Error registering hotkey.")
 
-    root.after(1, hotkey_handler, root)
-
-    root.mainloop()
-
-    if user32.UnregisterHotKey(None, 1) != 0:
-        print("--Hotkey deregistered!")
-    else:
-        print("--Error deregistering hotkey.")
+        root.after(1, hotkey_handler, root) # schedule keyboard shortcut handler
+        root.mainloop()
+    finally:
+        if user32.UnregisterHotKey(None, 1) != 0:
+            print("--Hotkey deregistered!")
+        else:
+            print("--Error deregistering hotkey.")
 
 if __name__ == "__main__":
     run()
-
-
-    # from Tkinter import *
-    # from time import sleep
-
-    # root = Tk()
-    # var = StringVar()
-    # var.set('hello')
-
-    # l = Label(root, textvariable = var)
-    # l.pack()
-
-    # e = Entry(root)
-    # e.pack()
-    # e.bind(sequence='<KeyRelease>', func=updatetext)
-
-    # def updatetext(event):
-    #     var.set(e.get())
-    #     root.update_idletasks() 
