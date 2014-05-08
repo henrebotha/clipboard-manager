@@ -42,12 +42,24 @@ class Window(Tk):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_clipboard.paste)
 
+        self.after(1, self.hotkey_handler)
+
         self.my_clipboard.update_clipboard()
 
     def update_label(self, index, text):
         '''Change the clip at index to text and update its corresponding label.'''
         self.my_clipboard.clips[index] = text
         self.clips_vars[index].set(text)
+
+    def hotkey_handler(self):
+        self.msg = wintypes.MSG()
+        if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
+            if self.msg.message == win32con.WM_HOTKEY:
+                if self.msg.wParam == 1:
+                    self.deiconify()
+        user32.TranslateMessage(byref(self.msg))
+        user32.DispatchMessageA(byref(self.msg))
+        self.after(1, self.hotkey_handler)
 
 
 class Clipboard(object):
@@ -90,16 +102,6 @@ class Clipboard(object):
         self.parent.after(1, self.update_clipboard)
 
 
-def hotkey_handler(root):
-    msg = wintypes.MSG()
-    if user32.GetMessageA(byref(msg), None, 0, 0) != 0:
-        if msg.message == win32con.WM_HOTKEY:
-            if msg.wParam == 1:
-                root.deiconify()
-    user32.TranslateMessage(byref(msg))
-    user32.DispatchMessageA(byref(msg))
-    root.after(1, hotkey_handler, root)
-
 def run():
     '''Main app code.'''
     try:
@@ -110,7 +112,7 @@ def run():
         else:
             print("--Error registering hotkey.")
 
-        root.after(1, hotkey_handler, root) # schedule keyboard shortcut handler
+        # root.after(1, hotkey_handler, root) # schedule keyboard shortcut handler
         root.mainloop()
     finally:
         if user32.UnregisterHotKey(None, 1) != 0:
