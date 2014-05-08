@@ -26,11 +26,11 @@ class Window(Tk):
         self.resizable(FALSE,FALSE)
 
         # widgets & general init
-        self.my_clipboard = Clipboard(self) # give clipboard reference to window
-        self.clips_vars = [StringVar(i.text_display) for i in self.my_clipboard.clips]
+        self.my_cb = Clipboard(self) # give clipboard reference to window
+        self.clips_vars = [StringVar(i.text_display) for i in self.my_cb.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, height=1,
-            anchor=W) for i in range(len(self.my_clipboard.clips))]
+            anchor=W) for i in range(len(self.my_cb.clips))]
         self.labels_nums = [Label(self,
             text=str(i+1)[-1]+".") for i in range(10)]
         for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
@@ -40,17 +40,16 @@ class Window(Tk):
         # event bindings
         for i in range(10):
             s = "<Key-{}>".format(str(i+1)[-1])
-            self.bind_all(s, self.my_clipboard.paste)
+            self.bind_all(s, self.my_cb.paste)
 
-        self.after(1, self.hotkey_handler)
-
-        self.my_clipboard.update_clipboard()
+        self.after(1, self.hotkey_handler) # schedule hotkey handler
+        self.my_cb.update_clipboard() # start polling windows clipboard
 
     def update_label(self, index, text):
-        '''Change the clip at index to text and update its corresponding label.'''
-        self.my_clipboard.clips[index].text = text
-        self.my_clipboard.clips[index].text_display = text[-30:]
-        self.clips_vars[index].set(self.my_clipboard.clips[index].text_display)
+        '''Change the clip at index to text & update its corresponding label.'''
+        self.my_cb.clips[index].text = text
+        self.my_cb.clips[index].text_display = text[-30:]
+        self.clips_vars[index].set(self.my_cb.clips[index].text_display)
 
     def hotkey_handler(self):
         self.msg = wintypes.MSG()
@@ -67,6 +66,7 @@ class Clipboard(object):
     def __init__(self, parent):
         self.clips = [Clip("") for i in range(10)]
         self.parent = parent
+        self.update_counter = 0
 
     def paste(self, event):
         i = int(event.keysym)
@@ -87,6 +87,11 @@ class Clipboard(object):
         event.widget.iconify()
 
     def update_clipboard(self):
+        # debug
+        self.update_counter += 1
+        print("Non-initial clipboard update #" + str(self.update_counter))
+        # end debug
+
         self.clip_buffer = self.parent.clipboard_get()
         if self.clip_buffer == None:
             self.clip_buffer = ""
@@ -114,7 +119,7 @@ class Clipboard(object):
 class Clip(object):
     def __init__(self, text):
         self.text = text
-        self.text_display = text[-30:]
+        self.text_display = self.text[-30:]
 
 
 def run():
