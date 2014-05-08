@@ -27,7 +27,7 @@ class Window(Tk):
 
         # widgets & general init
         self.my_clipboard = Clipboard(self) # give clipboard reference to window
-        self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
+        self.clips_vars = [StringVar(i.text_display) for i in self.my_clipboard.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, height=1,
             anchor=W) for i in range(len(self.my_clipboard.clips))]
@@ -48,8 +48,9 @@ class Window(Tk):
 
     def update_label(self, index, text):
         '''Change the clip at index to text and update its corresponding label.'''
-        self.my_clipboard.clips[index] = text
-        self.clips_vars[index].set(text)
+        self.my_clipboard.clips[index].text = text
+        self.my_clipboard.clips[index].text_display = text[-30:]
+        self.clips_vars[index].set(self.my_clipboard.clips[index].text_display)
 
     def hotkey_handler(self):
         self.msg = wintypes.MSG()
@@ -64,14 +65,14 @@ class Window(Tk):
 
 class Clipboard(object):
     def __init__(self, parent):
-        self.clips = ["" for i in range(10)]
+        self.clips = [Clip("") for i in range(10)]
         self.parent = parent
 
     def paste(self, event):
         i = int(event.keysym)
         if i == 0:
             i = 10
-        print(self.clips[i-1])
+        print("Pasting: " + self.clips[i-1].text_display)
 
         # Implementation:
         # - on global hotkey press, find handle to current window before
@@ -90,16 +91,30 @@ class Clipboard(object):
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
-            self.clip_buffer == str(self.clip_buffer)
-        if self.clip_buffer in self.clips:
-            i = self.clips.index(self.clip_buffer)
+            self.clip_buffer == str(self.clip_buffer) # is this necessary?
+        # if self.clip_buffer in self.clips:
+        i = self.find_clip(self.clip_buffer, self.clips)
+        if i:
             self.clips.insert(0, self.clips.pop(i))
         else:
-            self.clips.insert(0, self.clip_buffer)
+            self.clips.insert(0, Clip(self.clip_buffer))
             self.clips.pop()
-        for index, clip in enumerate(self.clips):
-            self.parent.update_label(index, clip)
+        for i, c in enumerate(self.clips):
+            self.parent.update_label(i, c.text_display)
         self.parent.after(1, self.update_clipboard)
+
+    def find_clip(self, text, clips):
+        '''Returns index of a clip if text is found and False otherwise.'''
+        for i, c in enumerate(clips):
+            if c.text == text:
+                return i
+        return False
+
+
+class Clip(object):
+    def __init__(self, text):
+        self.text = text
+        self.text_display = text[-30:]
 
 
 def run():
