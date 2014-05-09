@@ -42,9 +42,8 @@ class Window(Tk):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_cb.paste)
 
-        # self.after(1, self.hotkey_handler)
-        # self.my_cb.update_clipboard()
-        self.after(1, self.loop_functions)
+        self.after(1, self.hotkey_handler)
+        self.my_cb.update_clipboard()
 
     def update_label(self, index, text):
         '''Change the clip at index to text and update its corresponding label.'''
@@ -105,7 +104,7 @@ class Clipboard(object):
             self.clips.pop()
         for index, clip in enumerate(self.clips):
             self.parent.update_label(index, clip)
-        # self.parent.after(1, self.update_clipboard)
+        self.parent.after(1, self.update_clipboard)
 
 
 def run():
