@@ -27,7 +27,7 @@ class Window(Tk):
 
         # widgets & general init
         self.my_cb = Clipboard(self) # give clipboard reference to window
-        self.clips_vars = [StringVar(i.text_display) for i in self.my_cb.clips]
+        self.clips_vars = [StringVar(i) for i in self.my_cb.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, height=1,
             anchor=W) for i in range(len(self.my_cb.clips))]
@@ -42,37 +42,42 @@ class Window(Tk):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_cb.paste)
 
-        self.after(1, self.hotkey_handler) # schedule hotkey handler
-        self.my_cb.update_clipboard() # start polling windows clipboard
+        # self.after(1, self.hotkey_handler)
+        # self.my_cb.update_clipboard()
+        self.after(1, self.loop_functions)
 
     def update_label(self, index, text):
-        '''Change the clip at index to text & update its corresponding label.'''
-        self.my_cb.clips[index].text = text
-        self.my_cb.clips[index].text_display = text[-30:]
-        self.clips_vars[index].set(self.my_cb.clips[index].text_display)
+        '''Change the clip at index to text and update its corresponding label.'''
+        self.my_cb.clips[index] = text
+        self.clips_vars[index].set(text)
 
     def hotkey_handler(self):
         self.msg = wintypes.MSG()
         if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
+                    self.after(1, self.update)
                     self.deiconify()
         user32.TranslateMessage(byref(self.msg))
         user32.DispatchMessageA(byref(self.msg))
-        self.after(1, self.hotkey_handler)
+        # self.after(1, self.hotkey_handler)
+
+    def loop_functions(self):
+        self.hotkey_handler()
+        self.my_cb.update_clipboard()
+        self.after(1, self.loop_functions)
 
 
 class Clipboard(object):
     def __init__(self, parent):
-        self.clips = [Clip("") for i in range(10)]
+        self.clips = ["" for i in range(10)]
         self.parent = parent
-        self.update_counter = 0
 
     def paste(self, event):
         i = int(event.keysym)
         if i == 0:
             i = 10
-        print("Pasting: " + self.clips[i-1].text_display)
+        print(self.clips[i-1])
 
         # Implementation:
         # - on global hotkey press, find handle to current window before
@@ -87,39 +92,20 @@ class Clipboard(object):
         event.widget.iconify()
 
     def update_clipboard(self):
-        # debug
-        self.update_counter += 1
-        print("Non-initial clipboard update #" + str(self.update_counter))
-        # end debug
-
         self.clip_buffer = self.parent.clipboard_get()
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
-            self.clip_buffer == str(self.clip_buffer) # is this necessary?
-        # if self.clip_buffer in self.clips:
-        i = self.find_clip(self.clip_buffer, self.clips)
-        if i:
+            self.clip_buffer == str(self.clip_buffer)
+        if self.clip_buffer in self.clips:
+            i = self.clips.index(self.clip_buffer)
             self.clips.insert(0, self.clips.pop(i))
         else:
-            self.clips.insert(0, Clip(self.clip_buffer))
+            self.clips.insert(0, self.clip_buffer)
             self.clips.pop()
-        for i, c in enumerate(self.clips):
-            self.parent.update_label(i, c.text_display)
-        self.parent.after(1, self.update_clipboard)
-
-    def find_clip(self, text, clips):
-        '''Returns index of a clip if text is found and False otherwise.'''
-        for i, c in enumerate(clips):
-            if c.text == text:
-                return i
-        return False
-
-
-class Clip(object):
-    def __init__(self, text):
-        self.text = text
-        self.text_display = self.text[-30:]
+        for index, clip in enumerate(self.clips):
+            self.parent.update_label(index, clip)
+        # self.parent.after(1, self.update_clipboard)
 
 
 def run():
@@ -132,7 +118,6 @@ def run():
         else:
             print("--Error registering hotkey.")
 
-        # root.after(1, hotkey_handler, root) # schedule keyboard shortcut handler
         root.mainloop()
     finally:
         if user32.UnregisterHotKey(None, 1) != 0:
