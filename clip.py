@@ -26,11 +26,11 @@ class Window(Tk):
         self.resizable(FALSE,FALSE)
 
         # widgets & general init
-        self.my_clipboard = Clipboard(self) # give clipboard reference to window
-        self.clips_vars = [StringVar(i) for i in self.my_clipboard.clips]
+        self.my_cb = Clipboard(self) # give clipboard reference to window
+        self.clips_vars = [StringVar(i) for i in self.my_cb.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
             width=30, height=1,
-            anchor=W) for i in range(len(self.my_clipboard.clips))]
+            anchor=W) for i in range(len(self.my_cb.clips))]
         self.labels_nums = [Label(self,
             text=str(i+1)[-1]+".") for i in range(10)]
         for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
@@ -40,15 +40,14 @@ class Window(Tk):
         # event bindings
         for i in range(10):
             s = "<Key-{}>".format(str(i+1)[-1])
-            self.bind_all(s, self.my_clipboard.paste)
+            self.bind_all(s, self.my_cb.paste)
 
         self.after(1, self.hotkey_handler)
-
-        self.my_clipboard.update_clipboard()
+        self.my_cb.update_clipboard()
 
     def update_label(self, index, text):
         '''Change the clip at index to text and update its corresponding label.'''
-        self.my_clipboard.clips[index] = text
+        self.my_cb.clips[index] = text
         self.clips_vars[index].set(text)
 
     def hotkey_handler(self):
@@ -56,6 +55,7 @@ class Window(Tk):
         if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
+                    self.after(1, self.update)
                     self.deiconify()
         user32.TranslateMessage(byref(self.msg))
         user32.DispatchMessageA(byref(self.msg))
@@ -112,7 +112,6 @@ def run():
         else:
             print("--Error registering hotkey.")
 
-        # root.after(1, hotkey_handler, root) # schedule keyboard shortcut handler
         root.mainloop()
     finally:
         if user32.UnregisterHotKey(None, 1) != 0:
