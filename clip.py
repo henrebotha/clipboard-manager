@@ -92,17 +92,26 @@ class Clipboard(object):
         event.widget.iconify()
 
     def update_clipboard(self):
-        self.clip_buffer = self.parent.clipboard_get()
+        try:
+            self.clip_buffer = self.parent.clipboard_get()
+        except _tkinter.TclError:
+            # TODO: make this more specific - what if TclError is something
+            # other than "CLIPBOARD selection doesn't exist"?
+            # Possible to get the error message text and compare against that?
+            self.clip_buffer = None
+
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
             self.clip_buffer == str(self.clip_buffer)
+
         if self.clip_buffer in self.clips:
             i = self.clips.index(self.clip_buffer)
             self.clips.insert(0, self.clips.pop(i))
         else:
             self.clips.insert(0, self.clip_buffer)
             self.clips.pop()
+
         for index, clip in enumerate(self.clips):
             self.parent.update_label(index, clip)
         # self.parent.after(1, self.update_clipboard)
