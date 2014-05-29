@@ -1,0 +1,4 @@
+- Allow the user to choose between pasting into the last text box that had focus, and pasting into the next text box clicked. Could be useful for people who have to move text between many windows often.
+- Allow the user to use a different paste shortcut (perhaps SHIFT+#) to prevent the window from minimising on paste. Toggle this in preferences (so opposite behaviour is 1-9 paste without minimise, SHIFT+1-9 paste with minimise).
+- Allow searching the clipboard history.
+- Allow using the arrow keys + Enter (or Space?) to choose a paste item. Probably necessitates changing the interface from using labels to using a list.

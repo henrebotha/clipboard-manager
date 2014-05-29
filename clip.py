@@ -56,6 +56,9 @@ class Window(Tk):
         if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
+                    # TODO: get handle of currently-focused window (& text box?)
+
+                    # END TODO
                     self.after(1, self.update)
                     self.deiconify()
         user32.TranslateMessage(byref(self.msg))
@@ -83,9 +86,16 @@ class Clipboard(object):
         # - on global hotkey press, find handle to current window before
         #   deiconifying this window
         # - on paste, send WM_PASTE message to said window
+        # Important: see if it's possible to WM_PASTE with a given string,
+        # instead of from the clipboard... otherwise, we need to quickly
+        # change the clipboard to the chosen clip, paste that, then revert the
+        # clipboard to what was there before, which could mess with non-string
+        # data. But if we *do* paste a given string, then we need to be sure it
+        # behaves as a paste in all other ways (so as to not interfere with
+        # stuff that expects pasting, etc).
         
         # # http://bytes.com/topic/python/answers/646943-get-control-over-window
-        # hwnd = user32.FindWindowA(None, "Notepad")
+        # hwnd = user32.FindWindowA(None, "Notepad") # obviously wrong
         # win32api.SendMessage(hwnd, win32con.WM_PASTE, 0, 0)
         # # http://bytes.com/topic/python/answers/646943-get-control-over-window
 
