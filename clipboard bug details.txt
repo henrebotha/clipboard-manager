@@ -4,22 +4,22 @@ Some possibilities.
 
 1. The tkinter main loop ceases to update while minimised.
 
-This code seems to prove otherwise:
+    This code seems to prove otherwise:
 
-    from tkinter import *
+        from tkinter import *
 
-    root = Tk()
-    spin_count = 0
+        root = Tk()
+        spin_count = 0
 
-    def spin(spin_count):
-        spin_count += 1
-        print("#: " + str(spin_count))
-        if spin_count % 5 == 0:
-            root.after(1, root.iconify())
+        def spin(spin_count):
+            spin_count += 1
+            print("#: " + str(spin_count))
+            if spin_count % 5 == 0:
+                root.after(1, root.iconify())
+            root.after(1, spin, spin_count)
+
         root.after(1, spin, spin_count)
-
-    root.after(1, spin, spin_count)
-    root.mainloop()
+        root.mainloop()
 
 2. The clipboard_get function can only work while not minimised.
 
@@ -31,4 +31,4 @@ This code seems to prove otherwise:
 
 4. The fact that update_clipboard and hotkey_handler are both being scheduled using root.after may be interfering with the two of them somehow.
 
-    Perhaps refactor both into an encapsulating function, and only schedule that function with root.after. Tried it - didn't work.
+    Perhaps refactor both into an encapsulating function, and only schedule that function with root.after. Tried it - didn't work. But right now I don't trust that I tried it *properly*, so maybe revisit this option if I hit a dead end with the others.

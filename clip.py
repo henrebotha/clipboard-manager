@@ -12,6 +12,7 @@ import ctypes
 from ctypes import wintypes
 import win32con
 import win32api
+import win32gui
 
 user32 = ctypes.windll.user32
 byref = ctypes.byref
@@ -26,6 +27,7 @@ class Window(Tk):
         self.resizable(FALSE,FALSE)
 
         # widgets & general init
+        self.hwnd_mostrecent = None
         self.my_cb = Clipboard(self) # give clipboard reference to window
         self.clips_vars = [StringVar(i) for i in self.my_cb.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
@@ -56,8 +58,12 @@ class Window(Tk):
         if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
-                    # TODO: get handle of currently-focused window (& text box?)
-
+                    # TODO: get handle of currently-focused window text box
+                    # this is a hack, it only works with Notepad (and maybe a few other things, untested)
+                    # need to generalise this
+                    # self.hwnd_mostrecent = win32gui.GetWindow(win32gui.GetForegroundWindow(), win32con.GW_CHILD)
+                    self.hwnd_mostrecent = win32gui.GetFocus()
+                    print("HWND: " + str(self.hwnd_mostrecent))
                     # END TODO
                     self.after(1, self.update)
                     self.deiconify()
@@ -86,18 +92,19 @@ class Clipboard(object):
         # - on global hotkey press, find handle to current window before
         #   deiconifying this window
         # - on paste, send WM_PASTE message to said window
-        # Important: see if it's possible to WM_PASTE with a given string,
-        # instead of from the clipboard... otherwise, we need to quickly
-        # change the clipboard to the chosen clip, paste that, then revert the
-        # clipboard to what was there before, which could mess with non-string
-        # data. But if we *do* paste a given string, then we need to be sure it
-        # behaves as a paste in all other ways (so as to not interfere with
-        # stuff that expects pasting, etc).
-        
+        # Important: it's not possible to WM_PASTE a given string, so we need to
+        # store the current state of the clipboard, change it to what we want to
+        # paste, WM_PASTE, then revert the clipboard
+
         # # http://bytes.com/topic/python/answers/646943-get-control-over-window
         # hwnd = user32.FindWindowA(None, "Notepad") # obviously wrong
         # win32api.SendMessage(hwnd, win32con.WM_PASTE, 0, 0)
         # # http://bytes.com/topic/python/answers/646943-get-control-over-window
+
+        # seems to be working, so far
+
+        # REMEMBER to update the clipboard before pasting! (And then revert)
+        win32api.SendMessage(self.parent.hwnd_mostrecent, win32con.WM_PASTE, 0, 0)
 
         event.widget.iconify()
 
