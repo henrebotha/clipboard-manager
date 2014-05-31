@@ -7,12 +7,13 @@
 #   only when opening the window.
 
 from tkinter import *
-from time import sleep
 import ctypes
 from ctypes import wintypes
 import win32con
 import win32api
 import win32gui
+import win32process
+import win32clipboard
 
 user32 = ctypes.windll.user32
 byref = ctypes.byref
@@ -44,8 +45,6 @@ class Window(Tk):
             s = "<Key-{}>".format(str(i+1)[-1])
             self.bind_all(s, self.my_cb.paste)
 
-        # self.after(1, self.hotkey_handler)
-        # self.my_cb.update_clipboard()
         self.after(1, self.loop_functions)
 
     def update_label(self, index, text):
@@ -59,11 +58,24 @@ class Window(Tk):
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
                     # TODO: get handle of currently-focused window text box
-                    # this is a hack, it only works with Notepad (and maybe a few other things, untested)
-                    # need to generalise this
-                    # self.hwnd_mostrecent = win32gui.GetWindow(win32gui.GetForegroundWindow(), win32con.GW_CHILD)
-                    self.hwnd_mostrecent = win32gui.GetFocus()
-                    print("HWND: " + str(self.hwnd_mostrecent))
+                    # self.hwnd_mostrecent = win32gui.GetWindow(win32gui.GetForegroundWindow(), win32con.GW_CHILD) # only works in Notepad
+                    # self.hwnd_mostrecent = win32gui.GetFocus()
+                    # self.hwnd_mostrecent = user32.GetGUIThreadInfo(win32con.NULL)
+                    # print("HWND: " + str(self.hwnd_mostrecent))
+
+                    self.hwnd_foreground = win32gui.GetForegroundWindow()
+                    # print("hwnd_foreground: " + str(self.hwnd_foreground))
+                    # _, self.pid_self = win32process.GetWindowThreadProcessId(None)
+                    self.pid_self = win32api.GetCurrentThreadId()
+                    # print("pid_self: " + str(self.pid_self))
+                    self.pid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
+                    # print("pid_foreground: " + str(self.pid_foreground))
+                    if self.pid_self != self.pid_foreground:
+                        win32process.AttachThreadInput(self.pid_foreground, self.pid_self, True)
+                    self.hwnd_focus = win32gui.GetFocus()
+                    # print("hwnd_focus: " + str(self.hwnd_focus))
+                    # win32process.AttachThreadInput(self.pid_foreground, self.pid_self, False)
+
                     # END TODO
                     self.after(1, self.update)
                     self.deiconify()
@@ -86,7 +98,7 @@ class Clipboard(object):
         i = int(event.keysym)
         if i == 0:
             i = 10
-        print(self.clips[i-1])
+        # print(self.clips[i-1])
 
         # Implementation:
         # - on global hotkey press, find handle to current window before
@@ -103,20 +115,32 @@ class Clipboard(object):
 
         # seems to be working, so far
 
-        # REMEMBER to update the clipboard before pasting! (And then revert)
-        win32api.SendMessage(self.parent.hwnd_mostrecent, win32con.WM_PASTE, 0, 0)
+        # store current clipboard state
+        self.clipboard_previous = win32clipboard.GetClipboardData(win32con.CF_TEXT)
 
+        # set clipboard to selected clip
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clips[i-1])
+        win32clipboard.CloseClipboard()
+
+        # paste
+        win32api.SendMessage(self.parent.hwnd_focus, win32con.WM_PASTE, 0, 0)
+        
+        # revert clipboard
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clipboard_previous)
+        win32clipboard.CloseClipboard()
+
+        # cleanup
+        if self.parent.pid_foreground != self.parent.pid_self:
+            win32process.AttachThreadInput(self.parent.pid_foreground, self.parent.pid_self, False)
         event.widget.iconify()
+        win32gui.SetForegroundWindow(self.parent.hwnd_foreground)
 
     def update_clipboard(self):
-        try:
-            self.clip_buffer = self.parent.clipboard_get()
-        except _tkinter.TclError:
-            # TODO: make this more specific - what if TclError is something
-            # other than "CLIPBOARD selection doesn't exist"?
-            # Possible to get the error message text and compare against that?
-            self.clip_buffer = None
-
+        self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
@@ -131,7 +155,6 @@ class Clipboard(object):
 
         for index, clip in enumerate(self.clips):
             self.parent.update_label(index, clip)
-        # self.parent.after(1, self.update_clipboard)
 
 
 def run():
