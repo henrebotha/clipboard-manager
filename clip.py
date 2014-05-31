@@ -18,6 +18,29 @@ import win32clipboard
 user32 = ctypes.windll.user32
 byref = ctypes.byref
 
+class RECT(ctypes.Structure):
+    _fields_ = [
+    ("left", ctypes.c_ulong),
+    ("top", ctypes.c_ulong),
+    ("right", ctypes.c_ulong),
+    ("bottom", ctypes.c_ulong)
+    ]
+
+
+class GUITHREADINFO(ctypes.Structure):
+    _fields_ = [
+    ("cbSize", ctypes.c_ulong),
+    ("flags", ctypes.c_ulong),
+    ("hwndActive", ctypes.c_ulong),
+    ("hwndFocus", ctypes.c_ulong),
+    ("hwndCapture", ctypes.c_ulong),
+    ("hwndMenuOwner", ctypes.c_ulong),
+    ("hwndMoveSize", ctypes.c_ulong),
+    ("hwndCaret", ctypes.c_ulong),
+    ("rcCaret", RECT)
+    ]
+
+
 class Window(Tk):
     def __init__(self):
         super().__init__()
@@ -63,18 +86,19 @@ class Window(Tk):
                     # self.hwnd_mostrecent = user32.GetGUIThreadInfo(win32con.NULL)
                     # print("HWND: " + str(self.hwnd_mostrecent))
 
+                    # self.hwnd_foreground = win32gui.GetForegroundWindow()
+                    # self.tid_self = win32process.GetWindowThreadProcessId(None)[0]
+                    # self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
+                    # if self.tid_self != self.tid_foreground:
+                    #     win32process.AttachThreadInput(self.tid_self, self.tid_foreground, True)
+                    # self.hwnd_focus = win32gui.GetFocus()
+
+                    gui = GUITHREADINFO(cbSize=ctypes.sizeof(GUITHREADINFO))
                     self.hwnd_foreground = win32gui.GetForegroundWindow()
-                    # print("hwnd_foreground: " + str(self.hwnd_foreground))
-                    # _, self.pid_self = win32process.GetWindowThreadProcessId(None)
-                    self.pid_self = win32api.GetCurrentThreadId()
-                    # print("pid_self: " + str(self.pid_self))
-                    self.pid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
-                    # print("pid_foreground: " + str(self.pid_foreground))
-                    if self.pid_self != self.pid_foreground:
-                        win32process.AttachThreadInput(self.pid_foreground, self.pid_self, True)
-                    self.hwnd_focus = win32gui.GetFocus()
-                    # print("hwnd_focus: " + str(self.hwnd_focus))
-                    # win32process.AttachThreadInput(self.pid_foreground, self.pid_self, False)
+                    self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
+                    if user32.GetGUIThreadInfo(0, byref(gui)) == False:
+                        print("ERROR #" + str(win32api.GetLastError()))
+                    self.hwnd_focus = gui.hwndFocus
 
                     # END TODO
                     self.after(1, self.update)
@@ -100,23 +124,10 @@ class Clipboard(object):
             i = 10
         # print(self.clips[i-1])
 
-        # Implementation:
-        # - on global hotkey press, find handle to current window before
-        #   deiconifying this window
-        # - on paste, send WM_PASTE message to said window
-        # Important: it's not possible to WM_PASTE a given string, so we need to
-        # store the current state of the clipboard, change it to what we want to
-        # paste, WM_PASTE, then revert the clipboard
-
-        # # http://bytes.com/topic/python/answers/646943-get-control-over-window
-        # hwnd = user32.FindWindowA(None, "Notepad") # obviously wrong
-        # win32api.SendMessage(hwnd, win32con.WM_PASTE, 0, 0)
-        # # http://bytes.com/topic/python/answers/646943-get-control-over-window
-
-        # seems to be working, so far
-
         # store current clipboard state
+        win32clipboard.OpenClipboard()
         self.clipboard_previous = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+        win32clipboard.CloseClipboard()
 
         # set clipboard to selected clip
         win32clipboard.OpenClipboard()
@@ -134,13 +145,15 @@ class Clipboard(object):
         win32clipboard.CloseClipboard()
 
         # cleanup
-        if self.parent.pid_foreground != self.parent.pid_self:
-            win32process.AttachThreadInput(self.parent.pid_foreground, self.parent.pid_self, False)
+        # if self.parent.tid_foreground != self.parent.tid_self:
+        #     win32process.AttachThreadInput(self.parent.tid_self, self.parent.tid_foreground, False)
         event.widget.iconify()
         win32gui.SetForegroundWindow(self.parent.hwnd_foreground)
 
     def update_clipboard(self):
+        win32clipboard.OpenClipboard()
         self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+        win32clipboard.CloseClipboard()
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
