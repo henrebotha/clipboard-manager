@@ -18,26 +18,17 @@ import win32clipboard
 user32 = ctypes.windll.user32
 byref = ctypes.byref
 
-class RECT(ctypes.Structure):
-    _fields_ = [
-    ("left", ctypes.c_ulong),
-    ("top", ctypes.c_ulong),
-    ("right", ctypes.c_ulong),
-    ("bottom", ctypes.c_ulong)
-    ]
-
-
 class GUITHREADINFO(ctypes.Structure):
     _fields_ = [
-    ("cbSize", ctypes.c_ulong),
-    ("flags", ctypes.c_ulong),
-    ("hwndActive", ctypes.c_ulong),
-    ("hwndFocus", ctypes.c_ulong),
-    ("hwndCapture", ctypes.c_ulong),
-    ("hwndMenuOwner", ctypes.c_ulong),
-    ("hwndMoveSize", ctypes.c_ulong),
-    ("hwndCaret", ctypes.c_ulong),
-    ("rcCaret", RECT)
+    ("cbSize", wintypes.DWORD),
+    ("flags", wintypes.DWORD),
+    ("hwndActive", wintypes.HWND),
+    ("hwndFocus", wintypes.HWND),
+    ("hwndCapture", wintypes.HWND),
+    ("hwndMenuOwner", wintypes.HWND),
+    ("hwndMoveSize", wintypes.HWND),
+    ("hwndCaret", wintypes.HWND),
+    ("rcCaret", wintypes.RECT)
     ]
 
 
@@ -95,7 +86,7 @@ class Window(Tk):
 
                     gui = GUITHREADINFO(cbSize=ctypes.sizeof(GUITHREADINFO))
                     self.hwnd_foreground = win32gui.GetForegroundWindow()
-                    self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
+                    # self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
                     if user32.GetGUIThreadInfo(0, byref(gui)) == False:
                         print("ERROR #" + str(win32api.GetLastError()))
                     self.hwnd_focus = gui.hwndFocus
