@@ -1,10 +1,13 @@
 # Issues:
-# - long clips will only show the last part of the clip. Correction will require
+# - Long clips will only show the last part of the clip. Correction will require
 #   creating a Clip class that can contain both the full text of a clip, and a
 #   display-friendly version
-# - pasting needs implementation
-# - clipboard detection is broken! it only detects the last-copied item, and
-#   only when opening the window.
+# - Pasting implementation only works in some apps (Notepad)
+# - Clipboard detection is broken! It only detects the last-copied item, and
+#   only when opening the window. Should probably add this app as a proper 
+#   clipboard listener according to win api.
+# - Lots of possibly unnecessary win32clipboard.OpenClipboard()/
+#   win32clipboard.CloseClipboard() calls. See if I can't get rid of them
 
 from tkinter import *
 import ctypes
@@ -68,35 +71,24 @@ class Window(Tk):
 
     def hotkey_handler(self):
         self.msg = wintypes.MSG()
+
         if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
             if self.msg.message == win32con.WM_HOTKEY:
                 if self.msg.wParam == 1:
-                    # TODO: get handle of currently-focused window text box
-                    # self.hwnd_mostrecent = win32gui.GetWindow(win32gui.GetForegroundWindow(), win32con.GW_CHILD) # only works in Notepad
-                    # self.hwnd_mostrecent = win32gui.GetFocus()
-                    # self.hwnd_mostrecent = user32.GetGUIThreadInfo(win32con.NULL)
-                    # print("HWND: " + str(self.hwnd_mostrecent))
-
-                    # self.hwnd_foreground = win32gui.GetForegroundWindow()
-                    # self.tid_self = win32process.GetWindowThreadProcessId(None)[0]
-                    # self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
-                    # if self.tid_self != self.tid_foreground:
-                    #     win32process.AttachThreadInput(self.tid_self, self.tid_foreground, True)
-                    # self.hwnd_focus = win32gui.GetFocus()
-
                     gui = GUITHREADINFO(cbSize=ctypes.sizeof(GUITHREADINFO))
                     self.hwnd_foreground = win32gui.GetForegroundWindow()
                     # self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
+                    
                     if user32.GetGUIThreadInfo(0, byref(gui)) == False:
                         print("ERROR #" + str(win32api.GetLastError()))
-                    self.hwnd_focus = gui.hwndFocus
 
-                    # END TODO
+                    self.hwnd_focus = gui.hwndFocus
+                    # self.hwnd_foreground = gui.hwndActive
                     self.after(1, self.update)
                     self.deiconify()
+
         user32.TranslateMessage(byref(self.msg))
         user32.DispatchMessageA(byref(self.msg))
-        # self.after(1, self.hotkey_handler)
 
     def loop_functions(self):
         self.hotkey_handler()
@@ -113,38 +105,54 @@ class Clipboard(object):
         i = int(event.keysym)
         if i == 0:
             i = 10
-        # print(self.clips[i-1])
 
         # store current clipboard state
-        win32clipboard.OpenClipboard()
-        self.clipboard_previous = win32clipboard.GetClipboardData(win32con.CF_TEXT)
-        win32clipboard.CloseClipboard()
+        try:
+            win32clipboard.OpenClipboard()
+            self.clipboard_previous = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+        finally:
+            win32clipboard.CloseClipboard()
 
         # set clipboard to selected clip
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clips[i-1])
-        win32clipboard.CloseClipboard()
+        try:
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clips[i-1])
+        finally:
+            win32clipboard.CloseClipboard()
 
         # paste
         win32api.SendMessage(self.parent.hwnd_focus, win32con.WM_PASTE, 0, 0)
         
         # revert clipboard
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clipboard_previous)
-        win32clipboard.CloseClipboard()
+        try:
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clipboard_previous)
+        finally:
+            win32clipboard.CloseClipboard()
 
         # cleanup
-        # if self.parent.tid_foreground != self.parent.tid_self:
-        #     win32process.AttachThreadInput(self.parent.tid_self, self.parent.tid_foreground, False)
         event.widget.iconify()
-        win32gui.SetForegroundWindow(self.parent.hwnd_foreground)
+        h = win32api.GetCurrentThreadId()
+        print(h)
+        print(self.parent.hwnd_focus)
+        win32process.AttachThreadInput(self.parent.hwnd_focus, h, True)
+        win32gui.SetFocus(self.parent.hwnd_focus)
+        win32process.AttachThreadInput(self.parent.hwnd_focus, h, False)
+        # win32process.AttachThreadInput(self.parent.hwnd_foreground, h, True)
+        # win32gui.SetFocus(self.parent.hwnd_focus)
+        # win32process.AttachThreadInput(self.parent.hwnd_foreground, h, False)
+        # win32gui.SetForegroundWindow(self.parent.hwnd_focus)
+        # win32gui.SetForegroundWindow(self.parent.hwnd_foreground)
 
     def update_clipboard(self):
-        win32clipboard.OpenClipboard()
-        self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
-        win32clipboard.CloseClipboard()
+        try:
+            win32clipboard.OpenClipboard()
+            self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+        finally:
+            win32clipboard.CloseClipboard()
+
         if self.clip_buffer == None:
             self.clip_buffer = ""
         else:
