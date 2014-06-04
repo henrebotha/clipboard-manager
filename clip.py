@@ -3,9 +3,6 @@
 #   creating a Clip class that can contain both the full text of a clip, and a
 #   display-friendly version
 # - Pasting implementation only works in some apps (Notepad)
-# - Clipboard detection is broken! It only detects the last-copied item, and
-#   only when opening the window. Should probably add this app as a proper 
-#   clipboard listener according to win api.
 # - Lots of possibly unnecessary win32clipboard.OpenClipboard()/
 #   win32clipboard.CloseClipboard() calls. See if I can't get rid of them
 
@@ -45,7 +42,6 @@ class Window(Tk):
         self.resizable(FALSE,FALSE)
 
         # widgets & general init
-        self.hwnd_mostrecent = None
         self.my_cb = Clipboard(self) # give clipboard reference to window
         self.clips_vars = [StringVar(i) for i in self.my_cb.clips]
         self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
@@ -122,7 +118,10 @@ class Clipboard(object):
             win32clipboard.CloseClipboard()
 
         # paste
+        # h = win32api.GetCurrentThreadId()
+        # win32process.AttachThreadInput(self.parent.hwnd_focus, h, True)
         win32api.SendMessage(self.parent.hwnd_focus, win32con.WM_PASTE, 0, 0)
+        # win32process.AttachThreadInput(self.parent.hwnd_focus, h, False)
         
         # revert clipboard
         try:
@@ -134,16 +133,14 @@ class Clipboard(object):
 
         # cleanup
         event.widget.iconify()
-        h = win32api.GetCurrentThreadId()
-        print(h)
-        print(self.parent.hwnd_focus)
-        win32process.AttachThreadInput(self.parent.hwnd_focus, h, True)
-        win32gui.SetFocus(self.parent.hwnd_focus)
-        win32process.AttachThreadInput(self.parent.hwnd_focus, h, False)
+        # h = win32api.GetCurrentThreadId()
+        # win32process.AttachThreadInput(self.parent.hwnd_focus, h, True)
+        # win32gui.SetFocus(self.parent.hwnd_focus)
+        # win32process.AttachThreadInput(self.parent.hwnd_focus, h, False)
         # win32process.AttachThreadInput(self.parent.hwnd_foreground, h, True)
         # win32gui.SetFocus(self.parent.hwnd_focus)
         # win32process.AttachThreadInput(self.parent.hwnd_foreground, h, False)
-        # win32gui.SetForegroundWindow(self.parent.hwnd_focus)
+        win32gui.SetForegroundWindow(self.parent.hwnd_focus)
         # win32gui.SetForegroundWindow(self.parent.hwnd_foreground)
 
     def update_clipboard(self):
@@ -168,6 +165,36 @@ class Clipboard(object):
         for index, clip in enumerate(self.clips):
             self.parent.update_label(index, clip)
 
+    # def update_clipboard(self):
+    #     # This doesn't yet work.
+    #     self.msg = wintypes.MSG()
+
+    #     if user32.GetMessageA(byref(self.msg), None, 0, 0) != 0:
+    #         if self.msg.message == 797: # WM_CLIPBOARDUPDATE
+    #             try:
+    #                 win32clipboard.OpenClipboard()
+    #                 self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+    #             finally:
+    #                 win32clipboard.CloseClipboard()
+
+    #             if self.clip_buffer == None:
+    #                 self.clip_buffer = ""
+    #             else:
+    #                 self.clip_buffer == str(self.clip_buffer)
+
+    #             if self.clip_buffer in self.clips:
+    #                 i = self.clips.index(self.clip_buffer)
+    #                 self.clips.insert(0, self.clips.pop(i))
+    #             else:
+    #                 self.clips.insert(0, self.clip_buffer)
+    #                 self.clips.pop()
+
+    #             for index, clip in enumerate(self.clips):
+    #                 self.parent.update_label(index, clip)
+
+    #     user32.TranslateMessage(byref(self.msg))
+    #     user32.DispatchMessageA(byref(self.msg))
+
 
 def run():
     '''Main app code.'''
@@ -178,7 +205,7 @@ def run():
             print("--Hotkey registered!")
         else:
             print("--Error registering hotkey.")
-
+        user32.AddClipboardFormatListener(win32api.GetCurrentThreadId())
         root.mainloop()
     finally:
         if user32.UnregisterHotKey(None, 1) != 0:

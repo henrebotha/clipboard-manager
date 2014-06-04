@@ -1,0 +1,7 @@
+FOCUS RESTORE BUG
+
+Using ClipX as a comparison, I've found it's impossible to paste into the search bar in the middle of a new Chrome tab. It should paste into the address bar instead. I'm successfully gaining focus of the address bar, but no pasting.
+
+ClipX will paste successfully into Sublime, but mine will not. Focus is restoring properly (including if I have "find in page" open in Sublime) but it's not pasting.
+
+I thought it might help to attach my thread to Sublime's, but I'm still getting "The parameter is incorrect" when I try to attach threads.
