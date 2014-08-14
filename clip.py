@@ -1,8 +1,8 @@
 # Issues:
-# - Long clips will only show the last part of the clip. Correction will require
-#   creating a Clip class that can contain both the full text of a clip, and a
-#   display-friendly version
-# - Pasting implementation only works in some apps (Notepad)
+# - Long clips will only show the last part of the clip. Correction will
+#   require creating a Clip class that can contain both the full text of a
+#   clip, and a display-friendly version
+# - Pasting implementation only works in some apps (Notepad, Excel)
 # - Lots of possibly unnecessary win32clipboard.OpenClipboard()/
 #   win32clipboard.CloseClipboard() calls. See if I can't get rid of them
 
@@ -12,43 +12,51 @@ from ctypes import wintypes
 import win32con
 import win32api
 import win32gui
-import win32process
+# import win32process
 import win32clipboard
 
 user32 = ctypes.windll.user32
 byref = ctypes.byref
 
+
 class GUITHREADINFO(ctypes.Structure):
     _fields_ = [
-    ("cbSize", wintypes.DWORD),
-    ("flags", wintypes.DWORD),
-    ("hwndActive", wintypes.HWND),
-    ("hwndFocus", wintypes.HWND),
-    ("hwndCapture", wintypes.HWND),
-    ("hwndMenuOwner", wintypes.HWND),
-    ("hwndMoveSize", wintypes.HWND),
-    ("hwndCaret", wintypes.HWND),
-    ("rcCaret", wintypes.RECT)
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hwndActive", wintypes.HWND),
+        ("hwndFocus", wintypes.HWND),
+        ("hwndCapture", wintypes.HWND),
+        ("hwndMenuOwner", wintypes.HWND),
+        ("hwndMoveSize", wintypes.HWND),
+        ("hwndCaret", wintypes.HWND),
+        ("rcCaret", wintypes.RECT)
     ]
 
 
 class Window(Tk):
+
     def __init__(self):
         super().__init__()
         # GUI init
         self.title("Clippy")
         self.iconbitmap("icon2.ico")
-        self.geometry("250x210-0+0") # place window in NE (0 left, 0 down)
-        self.resizable(FALSE,FALSE)
+        self.geometry("250x210-0+0")  # place window in NE (0 left, 0 down)
+        self.resizable(FALSE, FALSE)
 
         # widgets & general init
-        self.my_cb = Clipboard(self) # give clipboard reference to window
+        self.my_cb = Clipboard(self)  # give clipboard reference to window
         self.clips_vars = [StringVar(i) for i in self.my_cb.clips]
-        self.labels_clips = [Label(self, textvariable=self.clips_vars[i],
-            width=30, height=1,
-            anchor=W) for i in range(len(self.my_cb.clips))]
-        self.labels_nums = [Label(self,
-            text=str(i+1)[-1]+".") for i in range(10)]
+        self.labels_clips = [Label(
+            self,
+            textvariable=self.clips_vars[i],
+            width=30,
+            height=1,
+            anchor=W
+            ) for i in range(len(self.my_cb.clips))]
+        self.labels_nums = [Label(
+            self,
+            text=str(i+1)[-1]+"."
+            ) for i in range(10)]
         for i, n, c in zip(range(10), self.labels_nums, self.labels_clips):
             n.grid(column=0, row=i, padx=5)
             c.grid(column=1, row=i)
@@ -61,7 +69,7 @@ class Window(Tk):
         self.after(1, self.loop_functions)
 
     def update_label(self, index, text):
-        '''Change the clip at index to text and update its corresponding label.'''
+        '''Change the clip at index to text and update its label.'''
         self.my_cb.clips[index] = text
         self.clips_vars[index].set(text)
 
@@ -73,9 +81,10 @@ class Window(Tk):
                 if self.msg.wParam == 1:
                     gui = GUITHREADINFO(cbSize=ctypes.sizeof(GUITHREADINFO))
                     self.hwnd_foreground = win32gui.GetForegroundWindow()
-                    # self.tid_foreground = win32process.GetWindowThreadProcessId(self.hwnd_foreground)[0]
-                    
-                    if user32.GetGUIThreadInfo(0, byref(gui)) == False:
+                    # self.tid_foreground = win32process.\
+                    #     GetWindowThreadProcessId(self.hwnd_foreground)[0]
+
+                    if not user32.GetGUIThreadInfo(0, byref(gui)):
                         print("ERROR #" + str(win32api.GetLastError()))
 
                     self.hwnd_focus = gui.hwndFocus
@@ -93,6 +102,7 @@ class Window(Tk):
 
 
 class Clipboard(object):
+
     def __init__(self, parent):
         self.clips = ["" for i in range(10)]
         self.parent = parent
@@ -105,7 +115,8 @@ class Clipboard(object):
         # store current clipboard state
         try:
             win32clipboard.OpenClipboard()
-            self.clipboard_previous = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+            self.clipboard_previous = win32clipboard.\
+                GetClipboardData(win32con.CF_TEXT)
         finally:
             win32clipboard.CloseClipboard()
 
@@ -122,12 +133,15 @@ class Clipboard(object):
         # win32process.AttachThreadInput(self.parent.hwnd_focus, h, True)
         win32api.SendMessage(self.parent.hwnd_focus, win32con.WM_PASTE, 0, 0)
         # win32process.AttachThreadInput(self.parent.hwnd_focus, h, False)
-        
+
         # revert clipboard
         try:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardData(win32con.CF_TEXT, self.clipboard_previous)
+            win32clipboard.SetClipboardData(
+                win32con.CF_TEXT,
+                self.clipboard_previous
+                )
         finally:
             win32clipboard.CloseClipboard()
 
@@ -146,11 +160,12 @@ class Clipboard(object):
     def update_clipboard(self):
         try:
             win32clipboard.OpenClipboard()
-            self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+            self.clip_buffer = win32clipboard.\
+                GetClipboardData(win32con.CF_TEXT)
         finally:
             win32clipboard.CloseClipboard()
 
-        if self.clip_buffer == None:
+        if self.clip_buffer is None:
             self.clip_buffer = ""
         else:
             self.clip_buffer == str(self.clip_buffer)
@@ -173,7 +188,8 @@ class Clipboard(object):
     #         if self.msg.message == 797: # WM_CLIPBOARDUPDATE
     #             try:
     #                 win32clipboard.OpenClipboard()
-    #                 self.clip_buffer = win32clipboard.GetClipboardData(win32con.CF_TEXT)
+    #                 self.clip_buffer = win32clipboard.\
+    #                     GetClipboardData(win32con.CF_TEXT)
     #             finally:
     #                 win32clipboard.CloseClipboard()
 
