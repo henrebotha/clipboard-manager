@@ -115,8 +115,8 @@ class Clipboard(object):
         # store current clipboard state
         try:
             win32clipboard.OpenClipboard()
-            self.clipboard_previous = win32clipboard.\
-                GetClipboardData(win32con.CF_TEXT)
+            self.clipboard_previous = win32clipboard.GetClipboardData(
+                win32con.CF_TEXT)
         finally:
             win32clipboard.CloseClipboard()
 
@@ -160,8 +160,8 @@ class Clipboard(object):
     def update_clipboard(self):
         try:
             win32clipboard.OpenClipboard()
-            self.clip_buffer = win32clipboard.\
-                GetClipboardData(win32con.CF_TEXT)
+            self.clip_buffer = win32clipboard.GetClipboardData(
+                win32con.CF_TEXT)
         finally:
             win32clipboard.CloseClipboard()
 
@@ -188,8 +188,8 @@ class Clipboard(object):
     #         if self.msg.message == 797: # WM_CLIPBOARDUPDATE
     #             try:
     #                 win32clipboard.OpenClipboard()
-    #                 self.clip_buffer = win32clipboard.\
-    #                     GetClipboardData(win32con.CF_TEXT)
+    #                 self.clip_buffer = win32clipboard.GetClipboardData(
+    #                     win32con.CF_TEXT)
     #             finally:
     #                 win32clipboard.CloseClipboard()
 
